@@ -1,5 +1,4 @@
-#ifndef __FR_FLASH_H
-#define __FR_FLASH_H
+#pragma once
 
 #include <stdint.h>
 
@@ -56,5 +55,3 @@ flash_result_t flash_write(
  * @return FLASH_OK on success. FLASH_ERROR_WRITE in case of errors during writing, FLASH_ERROR_ERASE in case of errors during erasing
  */
 flash_result_t flash_copy(uint32_t addr_from, uint32_t addr_to, uint32_t length);
-
-#endif // FLASH
