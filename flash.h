@@ -23,17 +23,19 @@ typedef enum
  * 
  * @param addr Base address to erase. Should be aligned to FLASH_SECTOR_SIZE
  * @param length Bytes to erase
+ * 
+ *  @return FLASH_OK on success
  */
-flash_result_t flash_erase(uint32_t adr, uint32_t size);
+flash_result_t flash_erase(uint32_t addr, uint32_t size);
 
 /**
  * Write length words from data array
  * 
  * @param addr Base address to write. Should be aligned to FLASH_WORD_SIZE (32 bytes)
  * @param data Array of words to be written
- * @param length Length of data (words). Should be a multiple of FLASH_WORD_PROGRAM_WORDS (8)
+ * @param length Length of data (words)
  * 
- * @return 
+ * @return FLASH_OK on success
  */
 flash_result_t flash_write(
     uint32_t addr,
