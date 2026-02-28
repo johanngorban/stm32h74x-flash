@@ -36,7 +36,6 @@ static inline uint8_t GetSector(uint32_t addr) {
 
 static inline flash_result_t __flash_write_aligned(uint32_t addr, const uint32_t *data, uint32_t length);
 static inline flash_result_t __flash_erase(uint32_t addr, uint32_t length);
-static inline void __copy_from_flash(uint32_t *addr, uint32_t *buffer, uint32_t length);
 
 flash_result_t flash_copy(uint32_t addr_from, uint32_t addr_to, uint32_t length) {
     uint32_t bytes_to_copy = length * MCU_WORD_SIZE;
@@ -67,7 +66,7 @@ flash_result_t flash_copy(uint32_t addr_from, uint32_t addr_to, uint32_t length)
         return FLASH_ERROR_COPY;
     }
 
-    __copy_from_flash((uint32_t *) addr_from, buffer, length);
+    memcpy(buffer, (uint32_t *) addr_from, length * MCU_WORD_SIZE);
 
     HAL_FLASH_Unlock();
     status = __flash_erase(addr_to, bytes_to_copy);
@@ -193,8 +192,4 @@ flash_result_t __flash_erase(uint32_t addr, uint32_t bytes) {
     }
 
     return FLASH_OK;
-}
-
-void __copy_from_flash(uint32_t *source, uint32_t *dest, uint32_t length) {
-    memcpy(dest, source, length * MCU_WORD_SIZE);
 }
