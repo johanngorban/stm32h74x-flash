@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define FLASH_BANK1_END             (FLASH_BANK2_BASE - 1)
-#define FLASH_BANK2_END             (FLASH_BANK2_BASE + FLASH_SIZE - 1)
+#define FLASH_BANK2_END             (FLASH_BANK2_BASE + FLASH_BANK_SIZE - 1)
 #define FLASH_WORD_PROGRAM_WORDS    (FLASH_WORD_SIZE / sizeof(uint32_t))
 #define FLASH_WORD_SIZE             (32U)         // 32 bytes
 #define MCU_WORD_SIZE               (4U)          // 4 byte (32-bit)
@@ -37,12 +37,11 @@ static inline uint8_t GetSector(uint32_t addr) {
 static inline flash_result_t __flash_write_aligned(uint32_t addr, const uint32_t *data, uint32_t length);
 static inline flash_result_t __flash_erase(uint32_t addr, uint32_t length);
 
-flash_result_t flash_copy(uint32_t addr_from, uint32_t addr_to, uint32_t length) {
-    uint32_t bytes_to_copy = length * MCU_WORD_SIZE;
+flash_result_t flash_copy(uint32_t addr_from, uint32_t addr_to, uint32_t bytes) {
     if (!IsFlash(addr_from) ||
         !IsFlash(addr_to) ||
-        (addr_from > FLASH_END - bytes_to_copy) ||
-        (addr_to > FLASH_END - bytes_to_copy)    
+        (addr_from > (FLASH_END - bytes)) ||
+        (addr_to > (FLASH_END - bytes))    
     ) {
         return FLASH_ERROR_ADDRESS;
     }
@@ -53,38 +52,46 @@ flash_result_t flash_copy(uint32_t addr_from, uint32_t addr_to, uint32_t length)
         return FLASH_ERROR_ALIGNMENT;
     }
 
-    if (((addr_from <= addr_to) && (addr_from > addr_to - bytes_to_copy)) ||
-        ((addr_from > addr_to) && (addr_to > addr_from - bytes_to_copy))
+    if ((bytes % FLASH_WORD_SIZE) != 0) {
+        return FLASH_ERROR_ALIGNMENT;
+    }
+
+    if (((addr_from <= addr_to) && (addr_from > (addr_to - bytes))) ||
+        ((addr_from > addr_to) && (addr_to > (addr_from - bytes)))
     ) {
         return FLASH_ERROR_COPY;
     }
 
     flash_result_t status = FLASH_OK;
 
-    uint32_t *buffer = (uint32_t *) malloc(length * MCU_WORD_SIZE);
+    uint32_t *buffer = (uint32_t *) malloc(bytes);
     if (buffer == NULL) {
         return FLASH_ERROR_COPY;
     }
 
-    memcpy(buffer, (uint32_t *) addr_from, length * MCU_WORD_SIZE);
+    memcpy(buffer, (uint32_t *) addr_from, bytes);
 
+    __disable_irq();
     HAL_FLASH_Unlock();
-    status = __flash_erase(addr_to, bytes_to_copy);
+    status = __flash_erase(addr_to, bytes);
     if (status != FLASH_OK) {
         free(buffer);
+        HAL_FLASH_Lock();
         return status;
     }
 
+    uint32_t length = bytes / MCU_WORD_SIZE;
     status = __flash_write_aligned(addr_to, buffer, length);
     free(buffer);
 
     HAL_FLASH_Lock();
+    __enable_irq();
 
     return status;
 }
 
 flash_result_t flash_write(uint32_t addr, const uint32_t *data, uint32_t length) {
-    if (!IsFlash(addr) || (addr > FLASH_END - length)) {
+    if (!IsFlash(addr) || (addr > FLASH_END - (length * MCU_WORD_SIZE))) {
         return FLASH_ERROR_ADDRESS;
     }
 
@@ -95,8 +102,9 @@ flash_result_t flash_write(uint32_t addr, const uint32_t *data, uint32_t length)
 
     flash_result_t status = FLASH_OK;
 
+    __disable_irq();
     HAL_FLASH_Unlock();
-    // count of data should be aligned to 8
+
     if ((length % FLASH_WORD_PROGRAM_WORDS) == 0) {
         status = __flash_write_aligned(addr, data, length);
     }
@@ -125,12 +133,13 @@ flash_result_t flash_write(uint32_t addr, const uint32_t *data, uint32_t length)
     }
     
     HAL_FLASH_Lock();
+    __enable_irq();
 
     return status;
 }
 
-flash_result_t flash_erase(uint32_t addr, uint32_t length) {
-    if (!IsFlash(addr) || (addr > FLASH_END - length)) {
+flash_result_t flash_erase(uint32_t addr, uint32_t bytes) {
+    if (!IsFlash(addr) || (addr > FLASH_END - bytes)) {
         return FLASH_ERROR_ADDRESS;
     }
 
@@ -138,9 +147,13 @@ flash_result_t flash_erase(uint32_t addr, uint32_t length) {
         return FLASH_ERROR_ALIGNMENT;
     }
 
+    __disable_irq();
     HAL_FLASH_Unlock();
-    flash_result_t status = __flash_erase(addr, length);
+
+    flash_result_t status = __flash_erase(addr, bytes);
+    
     HAL_FLASH_Lock();
+    __enable_irq();
 
     return status;
 }

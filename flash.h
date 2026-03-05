@@ -17,15 +17,15 @@ typedef enum
 /**
  * Erase sectors of Flash
  * 
- * If length is not a multiple of FLASH_SECTOR_SIZE, upper(length / FLASH_SECTOR_SIZE) sectors will be erased. 
- * Otherwise, length / FLASH_SECTOR_SIZE sectors will be erased
+ * The function erases all sectors that intersect the specified range.
+ * The number of erased sectors equals ceil(bytes / FLASH_SECTOR_SIZE)
  * 
  * @param addr Base address to erase. Should be aligned to FLASH_SECTOR_SIZE
- * @param length Bytes to erase
+ * @param bytes Bytes to erase
  * 
  *  @return FLASH_OK on success
  */
-flash_result_t flash_erase(uint32_t addr, uint32_t size);
+flash_result_t flash_erase(uint32_t addr, uint32_t bytes);
 
 /**
  * Write length words from data array
@@ -47,11 +47,11 @@ flash_result_t flash_write(
  * 
  * @param addr_from Address of data to be copied
  * @param addr_to Copy destination address
- * @param length Count of words to be copied
+ * @param bytes Count of bytes to be copied
  * 
- * @note addr_from + length should be less than addr_to (addr_from + length < addr_to). Otherwise, FLASH_ERROR_COPY will be returned
- * @note All data in the sectors of [addr_to; addr_to + length - 1] will be erased except data to copy
+ * @note addr_from + bytes should be less than addr_to (addr_from + bytes < addr_to). Otherwise, FLASH_ERROR_COPY will be returned
+ * @note All data in the sectors of [addr_to; addr_to + bytes - 1] will be erased except data to copy
  * 
  * @return FLASH_OK on success. FLASH_ERROR_WRITE in case of errors during writing, FLASH_ERROR_ERASE in case of errors during erasing
  */
-flash_result_t flash_copy(uint32_t addr_from, uint32_t addr_to, uint32_t length);
+flash_result_t flash_copy(uint32_t addr_from, uint32_t addr_to, uint32_t bytes);
